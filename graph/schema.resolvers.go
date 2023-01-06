@@ -9,6 +9,26 @@ import (
 	"github.com/dendriel/graphql-server-test/graph/model"
 )
 
+// Courses is the resolver for the courses field.
+func (r *categoryResolver) Courses(ctx context.Context, obj *model.Category) ([]*model.Course, error) {
+	courses, err := r.CourseDB.FindByCategoryID(obj.ID)
+	if err != nil {
+		return nil, err
+	}
+	var coursesModel []*model.Course
+	for _, course := range courses {
+		courseModel := model.Course{
+			ID:          course.Id,
+			Name:        course.Name,
+			Description: &course.Description,
+		}
+
+		coursesModel = append(coursesModel, &courseModel)
+	}
+
+	return coursesModel, nil
+}
+
 // CreateCategory is the resolver for the createCategory field.
 func (r *mutationResolver) CreateCategory(ctx context.Context, input model.NewCategory) (*model.Category, error) {
 	category, err := r.CategoryDB.Create(input.Name, *input.Description)
@@ -25,7 +45,6 @@ func (r *mutationResolver) CreateCategory(ctx context.Context, input model.NewCa
 
 // CreateCourse is the resolver for the createCourse field.
 func (r *mutationResolver) CreateCourse(ctx context.Context, input model.NewCourse) (*model.Course, error) {
-
 	category, err := r.CategoryDB.FindById(input.CategoryID)
 	if err != nil {
 		return nil, err
@@ -104,11 +123,15 @@ func (r *queryResolver) Courses(ctx context.Context) ([]*model.Course, error) {
 	return coursesModel, nil
 }
 
+// Category returns CategoryResolver implementation.
+func (r *Resolver) Category() CategoryResolver { return &categoryResolver{r} }
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+type categoryResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

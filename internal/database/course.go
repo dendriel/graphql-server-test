@@ -31,6 +31,8 @@ func (c *Course) Create(name string, description string, category *Category) (*C
 }
 
 func (c *Course) FindAll() ([]Course, error) {
+	//TODO: ao invés de recuperar automaticamente a prop relacionada, é melhor declarar a entidade como um model do graphql
+	//TODO: para deixar o graphql resolver a prop relacionada quando ela for solicitada nas consultas.
 	rows, err := c.db.Query("SELECT co.id, co.name, co.description, ca.id, ca.name, ca.description FROM courses co JOIN categories ca ON co.category_id = ca.id")
 	if err != nil {
 		return nil, err
@@ -59,5 +61,22 @@ func (c *Course) FindAll() ([]Course, error) {
 		courses = append(courses, newCourse)
 	}
 
+	return courses, nil
+}
+
+func (c *Course) FindByCategoryID(categoryID string) ([]Course, error) {
+	rows, err := c.db.Query("SELECT id, name, description, category_id FROM courses WHERE category_id = ?", categoryID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var courses []Course
+	for rows.Next() {
+		var id, name, description, categoryID string
+		if err := rows.Scan(&id, &name, &description, &categoryID); err != nil {
+			return nil, err
+		}
+		courses = append(courses, Course{Id: id, Name: name, Description: description, Category: &Category{Id: categoryID}})
+	}
 	return courses, nil
 }
